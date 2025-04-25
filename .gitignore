@@ -1,0 +1,59 @@
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Build outputs
+dist/
+build/
+out/
+.webpack/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Coverage directory
+coverage/
+.nyc_output
+
+# Cache directories
+.npm
+.eslintcache
+.cache
+.parcel-cache
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Temp files
+tmp/
+temp/
+
+# Lock files
+# package-lock.json
+# yarn.lock 
