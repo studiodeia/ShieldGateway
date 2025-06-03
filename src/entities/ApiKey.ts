@@ -9,7 +9,8 @@ export enum ApiKeyScope {
   DPIA_READ = 'dpia:read',
   DPIA_WRITE = 'dpia:write',
   METRICS_READ = 'metrics:read',
-  ADMIN = 'admin'
+  ADMIN = 'admin',
+  POLICY_OVERRIDE = 'policy:override'
 }
 
 @Entity('api_keys')
@@ -22,8 +23,14 @@ export class ApiKeyEntity {
   @Column({ type: 'varchar', length: 255 })
   name!: string;
 
+  @Column({ type: 'varchar', length: 26, unique: true })
+  keyId!: string; // ULID for key identification
+
   @Column({ type: 'varchar', length: 64, unique: true })
   keyHash!: string; // SHA-256 hash of the API key
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  hashedKey?: string; // bcrypt hash for verification
 
   @Column({ type: 'varchar', length: 16 })
   keyPrefix!: string; // First 8 chars for identification (ga_live_12345678)
@@ -45,6 +52,9 @@ export class ApiKeyEntity {
 
   @Column({ type: 'integer', default: 0 })
   usageCount!: number;
+
+  @Column({ type: 'integer', default: 1000 })
+  rateLimit!: number; // requests per hour
 
   @Column({ type: 'varchar', length: 45, nullable: true })
   lastUsedIp?: string;

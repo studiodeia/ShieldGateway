@@ -27,6 +27,24 @@ export class TenantEntity {
   @Column({ type: 'varchar', length: 50, default: 'trial' })
   plan!: string; // trial, basic, pro, enterprise
 
+  @Column({ type: 'varchar', length: 50, default: 'free' })
+  tier!: string; // free, starter, pro, enterprise
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  passwordHash?: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  stripeCustomerId?: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  stripeSubscriptionId?: string;
+
+  @Column({ type: 'varchar', length: 50, default: 'inactive' })
+  subscriptionStatus!: string; // inactive, active, canceled, past_due
+
+  @Column({ type: 'timestamp', nullable: true })
+  tierUpdatedAt?: Date;
+
   @Column({ type: 'integer', default: 1000 })
   monthlyQuota!: number;
 
