@@ -1,0 +1,143 @@
+# GuardAgent Gateway MVP - Development Environment
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: guardagent-gateway-db
+    environment:
+      POSTGRES_DB: guardagent_gateway
+      POSTGRES_USER: guardagent
+      POSTGRES_PASSWORD: dev_password_change_in_prod
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U guardagent -d guardagent_gateway"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gateway-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: guardagent-gateway-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gateway-network
+
+  # GuardAgent Gateway Application
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    container_name: guardagent-gateway-app
+    ports:
+      - "8080:8080"
+    environment:
+      # Database
+      DATABASE_URL: postgresql://guardagent:dev_password_change_in_prod@postgres:5432/guardagent_gateway
+      
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      
+      # Application
+      NODE_ENV: development
+      LOG_LEVEL: debug
+      PORT: 8080
+      HOST: 0.0.0.0
+      
+      # Gateway Mode
+      GATEWAY_MODE: true
+      
+      # Feature Flags (simplified for Gateway)
+      FEATURES_VAULT_ENABLED: false
+      FEATURES_WORM_LOGGING: false
+      FEATURES_COMPLEX_RBAC: false
+      FEATURES_MAIL_SERVICE: false
+      FEATURES_KEY_ROTATION: false
+      
+      # Security
+      JWT_SECRET: dev_jwt_secret_change_in_prod
+      API_KEY_SECRET: dev_api_key_secret_change_in_prod
+      
+      # Rate Limiting
+      RATE_LIMIT_WINDOW_MS: 60000
+      RATE_LIMIT_MAX_REQUESTS: 1000
+      
+      # Logging (simplified)
+      LOG_RETENTION_DAYS: 30
+      LOG_INCLUDE_CONTENT: false
+      
+      # Performance
+      NODE_OPTIONS: "--max-old-space-size=512"
+      UV_THREADPOOL_SIZE: 8
+      
+      # Tiers
+      DEFAULT_TIER: free
+      
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./config:/app/config:ro
+      - ./public:/app/public:ro
+      - gateway_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - gateway-network
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy (optional for production-like setup)
+  nginx:
+    image: nginx:alpine
+    container_name: guardagent-gateway-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/gateway.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - gateway
+    networks:
+      - gateway-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  gateway_logs:
+    driver: local
+
+networks:
+  gateway-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

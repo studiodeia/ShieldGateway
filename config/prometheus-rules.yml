@@ -1,0 +1,147 @@
+groups:
+- name: guardagent.rules
+  rules:
+  
+  # High Latency Alert (Sprint 2 SLA: p95 ≤ 300ms @ 150 RPS)
+  - alert: HighLatency
+    expr: histogram_quantile(0.95, rate(guardagent_request_latency_ms_bucket[5m])) > 300
+    for: 2m
+    labels:
+      severity: critical
+      service: guardagent-core
+    annotations:
+      summary: "GuardAgent p95 latency exceeds SLA"
+      description: "p95 latency is {{ $value }}ms, exceeding the 300ms SLA target"
+      runbook_url: "https://docs.guardagent.io/runbooks/high-latency"
+
+  # High Request Rate
+  - alert: HighRequestRate
+    expr: rate(guardagent_requests_total[5m]) > 200
+    for: 5m
+    labels:
+      severity: warning
+      service: guardagent-core
+    annotations:
+      summary: "High request rate detected"
+      description: "Request rate is {{ $value }} req/s, above normal threshold"
+
+  # Authentication Failure Rate
+  - alert: HighAuthFailureRate
+    expr: rate(guardagent_auth_failures_total[5m]) > 10
+    for: 2m
+    labels:
+      severity: warning
+      service: guardagent-core
+    annotations:
+      summary: "High authentication failure rate"
+      description: "Authentication failures: {{ $value }} failures/s"
+
+  # Queue Backlog
+  - alert: QueueBacklog
+    expr: guardagent_queue_size{status="waiting"} > 1000
+    for: 5m
+    labels:
+      severity: warning
+      service: guardagent-core
+    annotations:
+      summary: "Queue backlog detected"
+      description: "{{ $labels.queue }} queue has {{ $value }} waiting jobs"
+
+  # Failed Queue Jobs
+  - alert: HighQueueFailureRate
+    expr: rate(guardagent_queue_size{status="failed"}[5m]) > 5
+    for: 2m
+    labels:
+      severity: critical
+      service: guardagent-core
+    annotations:
+      summary: "High queue failure rate"
+      description: "Queue failure rate: {{ $value }} failures/s"
+
+  # WORM Log Failures
+  - alert: WormLogFailures
+    expr: rate(guardagent_worm_logs_total{status="error"}[5m]) > 1
+    for: 1m
+    labels:
+      severity: critical
+      service: guardagent-core
+    annotations:
+      summary: "WORM logging failures detected"
+      description: "WORM log failure rate: {{ $value }} failures/s"
+
+  # Log Worker SLA Violation (p95 > 150ms)
+  - alert: LogWorkerSLAViolation
+    expr: histogram_quantile(0.95, rate(guardagent_log_worker_processing_duration_ms_bucket[5m])) > 150
+    for: 2m
+    labels:
+      severity: warning
+      service: guardagent-core
+    annotations:
+      summary: "Log worker processing SLA violation"
+      description: "Log worker p95 processing time is {{ $value }}ms, exceeding 150ms SLA"
+
+  # High Blocking Rate
+  - alert: HighBlockingRate
+    expr: guardagent_blocking_rate > 50
+    for: 10m
+    labels:
+      severity: warning
+      service: guardagent-core
+    annotations:
+      summary: "High security blocking rate"
+      description: "Blocking rate is {{ $value }}%, indicating potential attack"
+
+  # Service Down
+  - alert: ServiceDown
+    expr: up{job="guardagent-core"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: guardagent-core
+    annotations:
+      summary: "GuardAgent service is down"
+      description: "GuardAgent Core service is not responding"
+
+  # High Memory Usage
+  - alert: HighMemoryUsage
+    expr: (process_resident_memory_bytes / process_virtual_memory_max_bytes) * 100 > 80
+    for: 5m
+    labels:
+      severity: warning
+      service: guardagent-core
+    annotations:
+      summary: "High memory usage"
+      description: "Memory usage is {{ $value }}%"
+
+  # Database Connection Issues
+  - alert: DatabaseConnectionFailure
+    expr: increase(guardagent_requests_total{status_code=~"5.."}[5m]) > 10
+    for: 2m
+    labels:
+      severity: critical
+      service: guardagent-core
+    annotations:
+      summary: "Database connection issues detected"
+      description: "High rate of 5xx errors suggesting database issues"
+
+  # Security Event Spike
+  - alert: SecurityEventSpike
+    expr: rate(guardagent_security_events_total[5m]) > 50
+    for: 2m
+    labels:
+      severity: warning
+      service: guardagent-core
+    annotations:
+      summary: "Security event spike detected"
+      description: "Security events rate: {{ $value }} events/s"
+
+  # Low Success Rate
+  - alert: LowSuccessRate
+    expr: (rate(guardagent_requests_total{status_code=~"2.."}[5m]) / rate(guardagent_requests_total[5m])) * 100 < 95
+    for: 5m
+    labels:
+      severity: warning
+      service: guardagent-core
+    annotations:
+      summary: "Low success rate"
+      description: "Success rate is {{ $value }}%, below 95% threshold"

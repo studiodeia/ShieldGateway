@@ -1,8 +1,11 @@
 import { GuardResult, PolicyType, ToolGuardConfig } from './types';
 import * as jsonpath from 'jsonpath';
-import { Logger } from '../../utils/logger';
+import pino from 'pino';
 
-const logger = new Logger();
+const logger = pino({
+  name: 'guardagent-toolguard',
+  level: process.env.LOG_LEVEL || 'info',
+});
 
 // Lista de padrões de comandos perigosos em shell
 const DANGEROUS_SHELL_PATTERNS = [
@@ -40,10 +43,16 @@ const BLOCKED_FUNCTIONS = [
  * Configuração padrão para análise de ferramentas
  */
 export const DEFAULT_TOOL_GUARD_CONFIG: ToolGuardConfig = {
-  blockedShellCommands: [
-    'rm -rf', 'format', 'del', 'rmdir', 'shutdown', 'reboot',
-    'wget', 'curl', 'ssh', 'scp', 'ftp', 'telnet',
-    'eval', 'exec', 'chmod', 'sudo', 'su'
+  blockedCommands: [
+    /rm\s+(-rf?|--force)\s+/i,
+    /mkfs/i,
+    /dd\s+if/i,
+    /((sudo|su)\s+)?wget.+(\||>)/i,
+    /curl.+(\||>)/i,
+    /eval\(/i,
+    /system\(/i,
+    /exec\(/i,
+    /child_process/i,
   ],
   blockedDomains: [
     'malware.com',
@@ -56,7 +65,7 @@ export const DEFAULT_TOOL_GUARD_CONFIG: ToolGuardConfig = {
     '.exe', '.bat', '.sh', '.dll', '.so',
     '.apk', '.app', '.vbs', '.ps1', '.cmd'
   ],
-  blockedUrlSchemes: [
+  blockedSchemes: [
     'file:',
     'data:',
     'ftp:',
@@ -162,8 +171,8 @@ export function analyzeToolCall(
   if (toolName === 'run_terminal_cmd' && params.command) {
     const command = String(params.command).toLowerCase();
     
-    for (const blockedCmd of config.blockedShellCommands) {
-      if (command.includes(blockedCmd.toLowerCase())) {
+    for (const blockedCmd of config.blockedCommands) {
+      if (command.match(blockedCmd)) {
         logger.warn(`Comando shell bloqueado detectado: ${blockedCmd}`);
         return {
           risk: 0.9,
@@ -202,7 +211,7 @@ export function analyzeToolCall(
   }
 
   // Verifica esquemas de URL bloqueados
-  for (const scheme of config.blockedUrlSchemes) {
+  for (const scheme of config.blockedSchemes) {
     if (paramString.includes(scheme.toLowerCase())) {
       logger.warn(`Esquema de URL bloqueado detectado: ${scheme}`);
       return {

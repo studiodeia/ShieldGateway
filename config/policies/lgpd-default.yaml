@@ -1,0 +1,189 @@
+# GuardAgent LGPD/GDPR Default Policy Configuration
+# This file defines the security and compliance policies for content analysis
+
+metadata:
+  name: "lgpd-default"
+  version: "1.2.0"
+  description: "Default LGPD/GDPR compliance policy for Brazilian market"
+  lastUpdated: "2025-06-16T10:00:00Z"
+  maintainer: "GuardAgent Compliance Team"
+  applicableRegions: ["BR", "EU"]
+
+# Prompt injection detection rules
+promptInjection:
+  enabled: true
+  strictMode: false
+  confidence:
+    block: 0.85      # Block if confidence >= 85%
+    warn: 0.60       # Warn if confidence >= 60%
+    log: 0.30        # Log if confidence >= 30%
+  
+  patterns:
+    # High-risk patterns (confidence: 0.9)
+    - pattern: "ignore\\s+previous\\s+instructions"
+      confidence: 0.9
+      description: "Direct instruction override attempt"
+      
+    - pattern: "system\\s*:\\s*you\\s+are"
+      confidence: 0.9
+      description: "System role redefinition"
+      
+    - pattern: "\\[INST\\]|<\\|im_start\\|>"
+      confidence: 0.9
+      description: "Model-specific instruction tokens"
+    
+    # Medium-risk patterns (confidence: 0.7)
+    - pattern: "forget\\s+everything"
+      confidence: 0.7
+      description: "Memory reset attempt"
+      
+    - pattern: "new\\s+instructions"
+      confidence: 0.7
+      description: "Instruction replacement"
+      
+    - pattern: "act\\s+as\\s+if"
+      confidence: 0.6
+      description: "Role-playing injection"
+    
+    # Low-risk patterns (confidence: 0.4)
+    - pattern: "pretend\\s+that"
+      confidence: 0.4
+      description: "Mild role-playing"
+
+# Data sensitivity classification
+dataSensitivity:
+  enabled: true
+  categories:
+    # LGPD Article 5, II - Personal Data
+    personal:
+      weight: 0.6
+      patterns:
+        - "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}-?\\d{2}\\b"  # CPF
+        - "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b"  # Email
+        - "\\b\\d{11}\\b"  # Phone number
+        - "\\b\\d{5}-?\\d{3}\\b"  # CEP
+      keywords: ["nome", "endereço", "telefone", "email", "data de nascimento"]
+    
+    # LGPD Article 5, II - Sensitive Personal Data
+    sensitive:
+      weight: 0.9
+      patterns:
+        - "\\b\\d{2}\\.?\\d{3}\\.?\\d{3}\\/?\\d{4}-?\\d{2}\\b"  # CNPJ
+        - "\\b\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}\\b"  # Credit card
+      keywords: 
+        - "racial" 
+        - "étnica"
+        - "política"
+        - "religiosa"
+        - "sindical"
+        - "saúde"
+        - "vida sexual"
+        - "genética"
+        - "biométrica"
+    
+    # Financial data
+    financial:
+      weight: 0.8
+      patterns:
+        - "\\b\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}\\b"
+        - "\\b\\d{3}-?\\d{2}-?\\d{4}\\b"  # SSN format
+      keywords: ["conta", "banco", "cartão", "financeiro", "renda", "salário"]
+
+# Content filtering rules
+contentFiltering:
+  enabled: true
+  
+  # Blocked content types
+  blockedContent:
+    - type: "malware"
+      action: "block"
+      patterns: ["malware", "virus", "trojan"]
+    
+    - type: "phishing"
+      action: "block"
+      patterns: ["phishing", "fake login", "credential theft"]
+    
+    - type: "spam"
+      action: "warn"
+      patterns: ["spam", "unsolicited", "bulk email"]
+
+# Rate limiting per content type
+rateLimiting:
+  enabled: true
+  rules:
+    - contentType: "sensitive"
+      requests: 10
+      window: 60  # seconds
+      action: "block"
+    
+    - contentType: "personal"
+      requests: 50
+      window: 60
+      action: "warn"
+    
+    - contentType: "general"
+      requests: 1000
+      window: 60
+      action: "log"
+
+# Response actions
+actions:
+  block:
+    enabled: true
+    message: "Content blocked due to policy violation"
+    logLevel: "warn"
+    notifyAdmin: true
+  
+  warn:
+    enabled: true
+    message: "Content flagged for review"
+    logLevel: "info"
+    notifyAdmin: false
+  
+  log:
+    enabled: true
+    logLevel: "debug"
+    notifyAdmin: false
+
+# Integration settings
+integrations:
+  dpia:
+    autoGenerate: true
+    threshold: 0.7  # Generate DPIA if risk score >= 70%
+  
+  dsr:
+    autoLog: true
+    categories: ["personal", "sensitive"]
+  
+  notifications:
+    email:
+      enabled: true
+      recipients: ["compliance@company.com"]
+      threshold: 0.8
+    
+    webhook:
+      enabled: false
+      url: "https://api.company.com/security-alerts"
+      threshold: 0.9
+
+# Compliance settings
+compliance:
+  lgpd:
+    enabled: true
+    legalBasis:
+      required: true
+      validBases: ["consent", "contract", "legal_obligation", "vital_interests", "public_task", "legitimate_interests"]
+  
+  gdpr:
+    enabled: true
+    dataSubjectRights: true
+    rightToErasure: true
+    dataPortability: true
+
+# Audit and logging
+audit:
+  enabled: true
+  logAllRequests: true
+  retentionDays: 2555  # 7 years for LGPD compliance
+  includeContent: false  # For privacy - only log metadata
+  includeRiskScore: true

@@ -1,0 +1,88 @@
+# GuardAgent Gateway MVP Dockerfile
+# Optimized for fast startup and minimal footprint
+
+FROM node:18-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache python3 make g++
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# Install dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy source code
+COPY src/ ./src/
+COPY config/ ./config/
+COPY public/ ./public/
+
+# Build application
+RUN npm run build
+
+# Production stage
+FROM node:18-alpine AS production
+
+# Create app user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S guardagent -u 1001
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    dumb-init \
+    curl \
+    && rm -rf /var/cache/apk/*
+
+WORKDIR /app
+
+# Copy built application
+COPY --from=builder --chown=guardagent:nodejs /app/dist ./dist
+COPY --from=builder --chown=guardagent:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=guardagent:nodejs /app/config ./config
+COPY --from=builder --chown=guardagent:nodejs /app/public ./public
+COPY --from=builder --chown=guardagent:nodejs /app/package.json ./
+
+# Create directories for logs and data
+RUN mkdir -p /app/logs /app/data && \
+    chown -R guardagent:nodejs /app/logs /app/data
+
+# Switch to non-root user
+USER guardagent
+
+# Environment variables
+ENV NODE_ENV=production
+ENV PORT=8080
+ENV HOST=0.0.0.0
+
+# Gateway-specific environment
+ENV GATEWAY_MODE=true
+ENV FEATURES_VAULT_ENABLED=false
+ENV FEATURES_WORM_LOGGING=false
+ENV FEATURES_COMPLEX_RBAC=false
+
+# Performance optimizations
+ENV NODE_OPTIONS="--max-old-space-size=512 --max-semi-space-size=32"
+ENV UV_THREADPOOL_SIZE=8
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/v1/health || exit 1
+
+# Expose port
+EXPOSE 8080
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start application
+CMD ["node", "dist/index.js"]
+
+# Labels
+LABEL org.opencontainers.image.title="GuardAgent Gateway"
+LABEL org.opencontainers.image.description="AI Security Gateway for Developers"
+LABEL org.opencontainers.image.version="1.0.0-gateway"
+LABEL org.opencontainers.image.vendor="GuardAgent"
+LABEL org.opencontainers.image.source="https://github.com/guardagent/gateway"

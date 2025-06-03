@@ -1,5 +1,5 @@
 // Export all guard functions
-export { inputGuard } from './inputGuard';
+export { analyzeInput as inputGuard } from './inputGuard';
 export { toolGuard } from './toolGuard';
 export { outputGuard } from './outputGuard';
 

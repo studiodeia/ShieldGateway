@@ -1,0 +1,335 @@
+# GuardAgent Gateway Configuration
+# This file configures the Gateway MVP while preserving Core v0.3.1 capabilities
+
+# Gateway mode configuration
+mode: gateway
+version: "1.0.0"
+environment: ${NODE_ENV:-development}
+
+# Core v0.3.1 features (preserved)
+core:
+  # Risk Engine (full power, simplified output)
+  riskEngine:
+    enabled: true
+    configPath: ./config/risk-weights.yaml
+    hotReload: true
+    outputMode: simplified  # 0-1 score instead of 0-100
+    
+  # Performance optimizations (maintained)
+  performance:
+    enabled: true
+    configPath: ./config/performance.yaml
+    nodeOptions: "--max-old-space-size=768 --max-semi-space-size=32"
+    uvThreadpoolSize: 16
+    
+  # Vault integration (optional for Gateway)
+  vault:
+    enabled: ${VAULT_ENABLED:-false}
+    mode: ${VAULT_MODE:-minimal}  # full, minimal, disabled
+    address: ${VAULT_ADDR:-}
+    authMethod: ${VAULT_AUTH_METHOD:-kubernetes}
+    
+  # WORM logging (simplified for Gateway)
+  wormLogging:
+    enabled: ${WORM_LOGGING_ENABLED:-false}
+    mode: ${WORM_MODE:-basic}  # full, basic, disabled
+    s3ObjectLock: false  # Disabled for MVP
+    merkleRoot: false    # Disabled for MVP
+    
+  # Database (full Core configuration)
+  database:
+    postgresql:
+      max: 50
+      idleTimeoutMillis: 30000
+      connectionTimeoutMillis: 2000
+      
+  # Redis (full Core configuration)
+  redis:
+    maxRetriesPerRequest: 3
+    retryDelayOnFailover: 100
+    enableReadyCheck: true
+    lazyConnect: true
+
+# Gateway-specific features
+gateway:
+  # User interface
+  ui:
+    selfService: true
+    dashboard: simplified  # simplified, full, disabled
+    playground: true
+    landingPage: true
+    
+  # Authentication (simplified)
+  auth:
+    primaryMethod: apikey  # apikey, jwt, both
+    jwtMode: symmetric     # asymmetric, symmetric
+    keyRotation: manual    # auto, manual, disabled
+    sessionTimeout: 7d
+    
+  # Secrets management (simplified)
+  secrets:
+    mode: environment      # vault, environment, hybrid
+    vaultOptional: true
+    fallbackToEnv: true
+    
+  # Compliance (basic)
+  compliance:
+    dpia: false           # Disabled for MVP
+    legalBasis: false     # Disabled for MVP
+    basicLogging: true
+    dataRetention: 90     # days
+    
+  # Billing and tiers
+  billing:
+    enabled: ${BILLING_ENABLED:-false}
+    provider: ${BILLING_PROVIDER:-mock}  # stripe, mock
+    currency: USD
+    
+  # Webhooks (tier feature)
+  webhooks:
+    enabled: true
+    maxRetries: 3
+    timeoutMs: 5000
+    
+  # Rate limiting (per tier)
+  rateLimiting:
+    enabled: true
+    windowMs: 60000  # 1 minute
+    skipSuccessfulRequests: false
+
+# Feature flags by tier
+features:
+  byTier:
+    free:
+      - promptInjection
+      - piiDetection
+      - basicLogging
+      - rateLimit10
+      
+    starter:
+      - promptInjection
+      - piiDetection
+      - piiMasking
+      - customPolicies
+      - basicLogging
+      - hotReload
+      - rateLimit100
+      
+    pro:
+      - promptInjection
+      - piiDetection
+      - piiMasking
+      - riskScoring
+      - customPolicies
+      - webhooks
+      - advancedMetrics
+      - basicLogging
+      - hotReload
+      - batchProcessing
+      - rateLimit1000
+
+# Tier configurations
+tiers:
+  free:
+    name: "Free"
+    monthlyQuota: 1000
+    rateLimit:
+      requests: 10
+      window: 60
+    features:
+      promptInjection: true
+      piiDetection: true
+      piiMasking: false
+      riskScoring: false
+      customPolicies: false
+      webhooks: false
+      advancedMetrics: false
+      s3Logging: false
+    logging:
+      enabled: true
+      retentionDays: 7
+      includeContent: false
+    support: docs
+    price:
+      monthly: 0
+      annual: 0
+      
+  starter:
+    name: "Starter"
+    monthlyQuota: 10000
+    rateLimit:
+      requests: 100
+      window: 60
+    features:
+      promptInjection: true
+      piiDetection: true
+      piiMasking: true
+      riskScoring: false
+      customPolicies: true
+      webhooks: false
+      advancedMetrics: false
+      s3Logging: true
+    logging:
+      enabled: true
+      retentionDays: 30
+      includeContent: false
+    support: email
+    price:
+      monthly: 29
+      annual: 290
+      
+  pro:
+    name: "Pro"
+    monthlyQuota: 100000
+    rateLimit:
+      requests: 1000
+      window: 60
+    features:
+      promptInjection: true
+      piiDetection: true
+      piiMasking: true
+      riskScoring: true
+      customPolicies: true
+      webhooks: true
+      advancedMetrics: true
+      s3Logging: true
+    logging:
+      enabled: true
+      retentionDays: 90
+      includeContent: true
+    support: priority
+    price:
+      monthly: 99
+      annual: 990
+
+# Logging configuration
+logging:
+  level: ${LOG_LEVEL:-info}
+  format: json
+  destinations:
+    - console
+    - file
+  file:
+    path: ./logs/gateway.log
+    maxSize: 100MB
+    maxFiles: 10
+  structured: true
+  includeRequestId: true
+
+# Monitoring and metrics
+monitoring:
+  enabled: true
+  prometheus:
+    enabled: true
+    port: 9090
+    path: /metrics
+  healthCheck:
+    enabled: true
+    path: /v1/health
+    interval: 30s
+  alerts:
+    enabled: ${ALERTS_ENABLED:-false}
+    webhook: ${ALERT_WEBHOOK_URL:-}
+
+# Security settings
+security:
+  cors:
+    enabled: true
+    origins:
+      - https://gateway.guardagent.io
+      - https://app.guardagent.io
+      - http://localhost:3000
+  headers:
+    xFrameOptions: DENY
+    xContentTypeOptions: nosniff
+    xXSSProtection: "1; mode=block"
+    referrerPolicy: strict-origin-when-cross-origin
+  apiKeys:
+    prefix: ga_
+    length: 32
+    expirationDays: 365
+
+# External services
+external:
+  openai:
+    enabled: false  # Not needed for Gateway MVP
+  sendgrid:
+    enabled: ${SENDGRID_ENABLED:-false}
+    apiKey: ${SENDGRID_API_KEY:-}
+  stripe:
+    enabled: ${STRIPE_ENABLED:-false}
+    publicKey: ${STRIPE_PUBLIC_KEY:-}
+    secretKey: ${STRIPE_SECRET_KEY:-}
+    webhookSecret: ${STRIPE_WEBHOOK_SECRET:-}
+
+# Development settings
+development:
+  hotReload: true
+  debugMode: true
+  mockExternalServices: true
+  seedData: true
+  
+# Production settings
+production:
+  hotReload: false
+  debugMode: false
+  mockExternalServices: false
+  seedData: false
+  ssl:
+    enabled: true
+    cert: ${SSL_CERT_PATH:-}
+    key: ${SSL_KEY_PATH:-}
+
+# Environment-specific overrides
+environments:
+  development:
+    core:
+      vault:
+        enabled: false
+      wormLogging:
+        enabled: false
+    gateway:
+      billing:
+        enabled: false
+        provider: mock
+      secrets:
+        mode: environment
+    logging:
+      level: debug
+      
+  staging:
+    core:
+      vault:
+        enabled: true
+        mode: minimal
+      wormLogging:
+        enabled: true
+        mode: basic
+    gateway:
+      billing:
+        enabled: true
+        provider: stripe
+      secrets:
+        mode: hybrid
+    logging:
+      level: info
+      
+  production:
+    core:
+      vault:
+        enabled: true
+        mode: full
+      wormLogging:
+        enabled: true
+        mode: full
+    gateway:
+      billing:
+        enabled: true
+        provider: stripe
+      secrets:
+        mode: vault
+    logging:
+      level: warn
+    monitoring:
+      alerts:
+        enabled: true

@@ -1,0 +1,247 @@
+# GuardAgent Performance Configuration
+# Optimizations for 300 RPS target with p95 < 350ms
+
+# Node.js Runtime Optimizations
+runtime:
+  # Memory settings
+  maxOldSpaceSize: 768  # MB - prevents excessive GC
+  maxSemiSpaceSize: 64  # MB - young generation heap
+  
+  # Garbage Collection
+  gcType: "incremental"  # or "concurrent"
+  exposeGC: false
+  
+  # Event Loop
+  uvThreadpoolSize: 16  # Increase for I/O intensive operations
+  
+  # V8 Optimizations
+  optimizeForSize: false
+  maxInlinedSourceSize: 600
+  
+# Database Connection Pool
+database:
+  postgresql:
+    # Connection pool settings
+    max: 50              # Maximum connections
+    min: 10              # Minimum connections
+    idle: 10000          # Idle timeout (ms)
+    acquire: 60000       # Acquire timeout (ms)
+    evict: 1000          # Eviction run interval (ms)
+    
+    # Query optimizations
+    statementTimeout: 30000    # 30 seconds
+    queryTimeout: 25000        # 25 seconds
+    connectionTimeout: 10000   # 10 seconds
+    
+    # Performance settings
+    ssl: false                 # Disable SSL for internal connections
+    keepAlive: true
+    keepAliveInitialDelayMs: 0
+
+# Redis Configuration
+redis:
+  # Connection settings
+  maxRetriesPerRequest: 3
+  retryDelayOnFailover: 100
+  enableOfflineQueue: false
+  lazyConnect: true
+  
+  # Connection pool
+  maxConnections: 20
+  minConnections: 5
+  
+  # Performance settings
+  keepAlive: 30000
+  commandTimeout: 5000
+  
+  # Memory optimization
+  maxMemoryPolicy: "allkeys-lru"
+
+# HTTP Server Configuration
+server:
+  # Keep-alive settings
+  keepAliveTimeout: 5000      # 5 seconds
+  headersTimeout: 6000        # 6 seconds
+  requestTimeout: 30000       # 30 seconds
+  
+  # Connection limits
+  maxConnections: 1000
+  maxRequestsPerSocket: 0     # Unlimited
+  
+  # Compression
+  compression:
+    enabled: true
+    level: 6                  # Balance between speed and compression
+    threshold: 1024           # Only compress responses > 1KB
+    
+  # Body parsing limits
+  bodyLimit: "1mb"
+  jsonLimit: "1mb"
+  textLimit: "1mb"
+
+# Queue Configuration (BullMQ)
+queue:
+  # Redis connection for queues
+  redis:
+    maxRetriesPerRequest: 3
+    retryDelayOnFailover: 100
+    lazyConnect: true
+  
+  # Worker settings
+  concurrency: 5              # Number of concurrent jobs
+  maxStalledCount: 3
+  stalledInterval: 30000      # 30 seconds
+  
+  # Job settings
+  removeOnComplete: 100       # Keep last 100 completed jobs
+  removeOnFail: 50           # Keep last 50 failed jobs
+  
+  # Rate limiting
+  limiter:
+    max: 3000                 # Max jobs per duration
+    duration: 1000            # Duration in ms (1 second)
+
+# Caching Configuration
+cache:
+  # Policy cache
+  policies:
+    ttl: 3600                 # 1 hour
+    maxSize: 100              # Max number of policies
+    
+  # Risk weights cache
+  riskWeights:
+    ttl: 1800                 # 30 minutes
+    
+  # JWT verification cache
+  jwtVerification:
+    ttl: 300                  # 5 minutes
+    maxSize: 1000             # Max cached tokens
+
+# Monitoring and Metrics
+monitoring:
+  # Prometheus metrics
+  prometheus:
+    enabled: true
+    collectDefaultMetrics: true
+    defaultLabels:
+      service: "guardagent-core"
+      environment: "${NODE_ENV}"
+    
+  # Health check intervals
+  healthCheck:
+    interval: 30000           # 30 seconds
+    timeout: 5000             # 5 seconds
+    
+  # Performance monitoring
+  performanceMonitoring:
+    enabled: true
+    sampleRate: 0.1           # Sample 10% of requests
+    slowRequestThreshold: 1000 # Log requests > 1 second
+
+# Security Optimizations
+security:
+  # Rate limiting
+  rateLimit:
+    windowMs: 60000           # 1 minute
+    max: 1000                 # Max requests per window per IP
+    standardHeaders: true
+    legacyHeaders: false
+    
+  # CORS
+  cors:
+    maxAge: 86400             # 24 hours
+    
+  # Helmet security headers
+  helmet:
+    contentSecurityPolicy: false  # Disable for API
+    crossOriginEmbedderPolicy: false
+
+# Load Balancer Configuration
+loadBalancer:
+  # Health check
+  healthCheckPath: "/v1/health"
+  healthCheckInterval: 10     # seconds
+  
+  # Connection settings
+  keepAlive: true
+  keepAliveTimeout: 5000      # 5 seconds
+  
+  # Sticky sessions (if needed)
+  stickySession: false
+
+# AWS Optimizations
+aws:
+  # S3 settings
+  s3:
+    maxRetries: 3
+    retryDelayOptions:
+      base: 300
+    httpOptions:
+      timeout: 10000
+      connectTimeout: 5000
+    
+  # KMS settings
+  kms:
+    maxRetries: 3
+    httpOptions:
+      timeout: 5000
+      connectTimeout: 2000
+
+# Logging Configuration
+logging:
+  # Performance-optimized logging
+  level: "info"               # Reduce debug logs in production
+  
+  # Async logging
+  async: true
+  
+  # Log rotation
+  rotation:
+    enabled: true
+    maxFiles: 5
+    maxSize: "100m"
+  
+  # Structured logging
+  structured: true
+  timestamp: true
+  
+  # Exclude sensitive data
+  redact:
+    - "password"
+    - "token"
+    - "apiKey"
+    - "authorization"
+
+# Environment-specific overrides
+environments:
+  development:
+    database:
+      postgresql:
+        max: 10
+    queue:
+      concurrency: 2
+    monitoring:
+      performanceMonitoring:
+        sampleRate: 1.0       # Sample all requests in dev
+        
+  staging:
+    database:
+      postgresql:
+        max: 30
+    queue:
+      concurrency: 3
+    monitoring:
+      performanceMonitoring:
+        sampleRate: 0.5       # Sample 50% in staging
+        
+  production:
+    database:
+      postgresql:
+        max: 50
+    queue:
+      concurrency: 5
+    monitoring:
+      performanceMonitoring:
+        sampleRate: 0.1       # Sample 10% in production
+    logging:
+      level: "warn"           # Reduce logging in production

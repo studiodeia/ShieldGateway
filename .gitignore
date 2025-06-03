@@ -56,4 +56,19 @@ temp/
 
 # Lock files
 # package-lock.json
-# yarn.lock 
+# yarn.lock
+
+# Arquivos de ambiente
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Arquivos de build
+*.tsbuildinfo
+
+# Gulp
+.gulp/
+
+# Diretórios de teste
+fuzz-results/ 

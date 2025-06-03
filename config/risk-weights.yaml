@@ -1,0 +1,47 @@
+# GuardAgent Risk Engine - Weight Configuration
+# This file controls how different risk vectors are weighted in the final risk score calculation
+
+defaultWeights:
+  - vector: "inj_prompt"
+    weight: 0.45
+    description: "Confidence in prompt injection detection"
+    rationale: "Primary security concern - highest weight"
+    
+  - vector: "data_category"
+    weight: 0.35
+    description: "Sensitivity of data category being processed"
+    rationale: "LGPD/GDPR compliance - high impact on privacy"
+    
+  - vector: "origin"
+    weight: 0.10
+    description: "Trust level of request origin (IP, geolocation, etc.)"
+    rationale: "Contextual factor - moderate impact"
+    
+  - vector: "tenant_reputation"
+    weight: 0.10
+    description: "Historical risk profile of the tenant"
+    rationale: "Behavioral pattern - will be enhanced in Sprint 4/5"
+
+# Future enhancement for Sprint 4/5:
+# tenantOverrides:
+#   tenant-fintech-alpha:
+#     - vector: "origin"
+#       weight: 0.20  # Increase origin weight for this tenant
+#     - vector: "tenant_reputation"
+#       weight: 0.05  # Decrease reputation weight
+#   
+#   tenant-healthcare-beta:
+#     - vector: "data_category"
+#       weight: 0.50  # Higher data sensitivity weight for healthcare
+
+# Risk thresholds for different actions
+thresholds:
+  low: 30      # 0-30: Low risk
+  medium: 70   # 31-70: Medium risk  
+  high: 90     # 71-100: High risk
+  block: 80    # Default blocking threshold
+
+# Metadata
+version: "1.0"
+lastUpdated: "2025-06-16T10:00:00Z"
+maintainer: "GuardAgent Security Team"
