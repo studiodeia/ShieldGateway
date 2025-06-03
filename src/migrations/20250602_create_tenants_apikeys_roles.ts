@@ -112,8 +112,8 @@ export class CreateTenantsApikeysRoles20250602 implements MigrationInterface {
             name: 'permissions',
             type: 'enum',
             enum: [
-              'guard:read',
-              'guard:write',
+              ApiKeyScope.GUARD_READ,
+              ApiKeyScope.GUARD_WRITE,
               'dsr:read',
               'dsr:write',
               'dsr:approve',
@@ -182,14 +182,14 @@ export class CreateTenantsApikeysRoles20250602 implements MigrationInterface {
             name: 'scopes',
             type: 'enum',
             enum: [
-              'guard:read',
-              'guard:write',
+              ApiKeyScope.GUARD_READ,
+              ApiKeyScope.GUARD_WRITE,
               'dsr:read',
               'dsr:write',
               'dpia:read',
               'dpia:write',
               'metrics:read',
-              'admin'
+              ApiKeyScope.ADMIN
             ],
             isArray: true,
           },

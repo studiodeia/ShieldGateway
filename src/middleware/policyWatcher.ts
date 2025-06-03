@@ -170,12 +170,12 @@ export class PolicyWatcherMiddleware {
     }
 
     // Check if user has admin permissions
-    if (req.auth?.scopes?.includes('admin')) {
+    if (req.auth?.scopes?.includes(ApiKeyScope.ADMIN)) {
       return true;
     }
 
     // Check for specific override permissions
-    if (req.auth?.scopes?.includes('policy:override')) {
+    if (req.auth?.scopes?.includes(ApiKeyScope.POLICY_OVERRIDE)) {
       return true;
     }
 
@@ -249,7 +249,7 @@ export class PolicyWatcherMiddleware {
   reloadPolicy = async (req: Request, res: Response) => {
     try {
       // Check admin permissions
-      if (!req.auth?.scopes?.includes('admin')) {
+      if (!req.auth?.scopes?.includes(ApiKeyScope.ADMIN)) {
         return res.status(403).json({
           error: 'Insufficient permissions',
           code: 'ADMIN_REQUIRED',

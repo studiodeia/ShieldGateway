@@ -2,15 +2,15 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { TenantEntity } from './Tenant';
 
 export enum ApiKeyScope {
-  GUARD_READ = 'guard:read',
-  GUARD_WRITE = 'guard:write',
+  GUARD_READ = ApiKeyScope.GUARD_READ,
+  GUARD_WRITE = ApiKeyScope.GUARD_WRITE,
   DSR_READ = 'dsr:read',
   DSR_WRITE = 'dsr:write',
   DPIA_READ = 'dpia:read',
   DPIA_WRITE = 'dpia:write',
   METRICS_READ = 'metrics:read',
-  ADMIN = 'admin',
-  POLICY_OVERRIDE = 'policy:override'
+  ADMIN = ApiKeyScope.ADMIN,
+  POLICY_OVERRIDE = ApiKeyScope.POLICY_OVERRIDE
 }
 
 @Entity('api_keys')

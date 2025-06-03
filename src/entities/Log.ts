@@ -8,33 +8,33 @@ import { Entity, PrimaryColumn, Column, CreateDateColumn, Index } from 'typeorm'
 @Index(['requestId'])
 export class LogEntity {
   @PrimaryColumn('varchar', { length: 26 })
-  id: string;
+  id!: string;
 
   @Column('varchar', { length: 26 })
   @Index()
-  tenantId: string;
+  tenantId!: string;
 
   @Column('varchar', { length: 50 })
   @Index()
-  requestId: string;
+  requestId!: string;
 
   @Column({
     type: 'enum',
     enum: ['ALLOW', 'BLOCK', 'REVIEW'],
   })
-  action: 'ALLOW' | 'BLOCK' | 'REVIEW';
+  action!: 'ALLOW' | 'BLOCK' | 'REVIEW';
 
   @Column({
     type: 'enum',
     enum: ['LOW', 'MEDIUM', 'HIGH'],
   })
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+  riskLevel!: 'LOW' | 'MEDIUM' | 'HIGH';
 
   @Column('decimal', { precision: 3, scale: 2 })
-  riskScore: number;
+  riskScore!: number;
 
   @Column('text')
-  content: string;
+  content!: string;
 
   @Column('text', { nullable: true })
   maskedContent?: string;
@@ -49,7 +49,7 @@ export class LogEntity {
   statusCode?: number; // HTTP status code
 
   @Column('timestamp', { default: () => 'CURRENT_TIMESTAMP' })
-  timestamp: Date; // Alias for createdAt for backward compatibility
+  timestamp!: Date; // Alias for createdAt for backward compatibility
 
   @Column('json', { nullable: true })
   detectedThreats?: string[];
@@ -76,13 +76,13 @@ export class LogEntity {
   metadata?: Record<string, any>;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Column('varchar', { length: 64, nullable: true })
   hashChainId?: string;
 
   @Column('boolean', { default: false })
-  isWormLogged: boolean;
+  isWormLogged!: boolean;
 
   @Column('varchar', { length: 255, nullable: true })
   s3ObjectKey?: string;

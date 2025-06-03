@@ -7,8 +7,8 @@ export enum RoleType {
 
 export enum Permission {
   // Guard permissions
-  GUARD_READ = 'guard:read',
-  GUARD_WRITE = 'guard:write',
+  GUARD_READ = ApiKeyScope.GUARD_READ,
+  GUARD_WRITE = ApiKeyScope.GUARD_WRITE,
   
   // DSR permissions
   DSR_READ = 'dsr:read',

@@ -95,7 +95,7 @@ export class PromptInjectionGuard {
       'ignore', 'esqueça', 'desconsidere', 'override', 'bypass',
       'jailbreak', 'hack', 'exploit', 'vulnerabilidade', 'backdoor',
       'senha', 'password', 'token', 'api key', 'secret', 'confidencial',
-      'sistema', 'admin', 'root', 'sudo', 'execute', 'comando',
+      'sistema', ApiKeyScope.ADMIN, 'root', 'sudo', 'execute', 'comando',
       'debug', 'dev mode', 'maintenance', 'developer',
     ];
   }

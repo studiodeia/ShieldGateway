@@ -222,8 +222,8 @@ router.get('/api/api-keys', async (req: Request, res: Response) => {
         keyId: key.keyId,
         name: key.name,
         scopes: key.scopes,
-        isActive: key.isActive,
-        lastUsed: key.lastUsed,
+        isActive: key.active,
+        lastUsed: key.lastUsedAt,
         createdAt: key.createdAt,
         expiresAt: key.expiresAt,
         rateLimit: key.rateLimit,
@@ -278,8 +278,8 @@ router.post('/api/api-keys', async (req: Request, res: Response) => {
     apiKey.hashedKey = apiKeyData.hashedKey;
     apiKey.name = name;
     apiKey.tenant = tenant;
-    apiKey.isActive = true;
-    apiKey.scopes = ['guard:read', 'guard:write'];
+    apiKey.active = true;
+    apiKey.scopes = [ApiKeyScope.GUARD_READ, ApiKeyScope.GUARD_WRITE];
     apiKey.rateLimit = tierConfig.rateLimit.requests;
     apiKey.expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year
 
@@ -343,7 +343,7 @@ router.delete('/api/api-keys/:keyId', async (req: Request, res: Response) => {
     }
 
     // Soft delete - mark as inactive
-    apiKey.isActive = false;
+    apiKey.active = false;
     await AppDataSource.getRepository(ApiKeyEntity).save(apiKey);
 
     logger.info('API key revoked', {

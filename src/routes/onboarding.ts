@@ -61,7 +61,7 @@ router.post('/signup', async (req: Request, res: Response) => {
     tenant.email = signupData.email;
     tenant.passwordHash = passwordHash;
     tenant.tier = signupData.tier;
-    tenant.isActive = true;
+    tenant.active = true;
     tenant.monthlyQuota = tierManager.getMonthlyQuota(signupData.tier);
     tenant.currentUsage = 0;
     tenant.metadata = {
@@ -80,8 +80,8 @@ router.post('/signup', async (req: Request, res: Response) => {
     apiKey.hashedKey = apiKeyData.hashedKey;
     apiKey.name = 'Default API Key';
     apiKey.tenant = savedTenant;
-    apiKey.isActive = true;
-    apiKey.scopes = ['guard:read', 'guard:write'];
+    apiKey.active = true;
+    apiKey.scopes = [ApiKeyScope.GUARD_READ, ApiKeyScope.GUARD_WRITE];
     apiKey.rateLimit = tierManager.getRateLimit(signupData.tier).requests;
     apiKey.expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year
 
@@ -183,7 +183,7 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     // Check if account is active
-    if (!tenant.isActive) {
+    if (!tenant.active) {
       return res.status(403).json({
         error: 'Account is disabled',
         code: 'ACCOUNT_DISABLED',
@@ -219,12 +219,12 @@ router.post('/login', async (req: Request, res: Response) => {
         token: sessionToken,
         expiresIn: '7d',
       },
-      apiKeys: tenant.apiKeys.filter(key => key.isActive).map(key => ({
+      apiKeys: tenant.apiKeys.filter(key => key.active).map(key => ({
         keyId: key.keyId,
         name: key.name,
         scopes: key.scopes,
         expiresAt: key.expiresAt,
-        lastUsed: key.lastUsed,
+        lastUsed: key.lastUsedAt,
       })),
       dashboard: '/dashboard',
       timestamp: new Date().toISOString(),

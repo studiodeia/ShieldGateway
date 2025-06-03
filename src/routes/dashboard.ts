@@ -14,7 +14,7 @@ const logger = pino({
 const router = Router();
 
 // Apply auth middleware to all dashboard routes
-router.use(authMiddleware);
+router.use(authMiddleware.authenticate);
 
 /**
  * GET /dashboard/overview
@@ -181,8 +181,8 @@ router.get('/api-keys', async (req: Request, res: Response) => {
         keyId: key.keyId,
         name: key.name,
         scopes: key.scopes,
-        isActive: key.isActive,
-        lastUsed: key.lastUsed,
+        isActive: key.active,
+        lastUsed: key.lastUsedAt,
         createdAt: key.createdAt,
         expiresAt: key.expiresAt,
         rateLimit: key.rateLimit,
